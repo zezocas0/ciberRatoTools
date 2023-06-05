@@ -1,0 +1,252 @@
+{
+	"BUILD_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/logplayer_autogen",
+	"CMAKE_BINARY_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_SOURCE_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools",
+	"HEADERS" : 
+	[
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbbeacon.h",
+			"MU",
+			"EWIEGA46WW/moc_cbbeacon.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbclient.h",
+			"MU",
+			"EWIEGA46WW/moc_cbclient.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbgrid.h",
+			"MU",
+			"EWIEGA46WW/moc_cbgrid.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbgridhandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cbgridhandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblab.h",
+			"MU",
+			"EWIEGA46WW/moc_cblab.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblabhandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cblabhandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbloghandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cbloghandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblogplayer.h",
+			"MU",
+			"EWIEGA46WW/moc_cblogplayer.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbparameters.h",
+			"MU",
+			"EWIEGA46WW/moc_cbparameters.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbparamhandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cbparamhandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbpoint.h",
+			"MU",
+			"EWIEGA46WW/moc_cbpoint.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbposition.h",
+			"MU",
+			"EWIEGA46WW/moc_cbposition.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbreceptionhandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cbreceptionhandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbreceptionist.h",
+			"MU",
+			"EWIEGA46WW/moc_cbreceptionist.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbrobot.h",
+			"MU",
+			"EWIEGA46WW/moc_cbrobot.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbtarget.h",
+			"MU",
+			"EWIEGA46WW/moc_cbtarget.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbview.h",
+			"MU",
+			"EWIEGA46WW/moc_cbview.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbviewhandler.h",
+			"MU",
+			"EWIEGA46WW/moc_cbviewhandler.cpp"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbwall.h",
+			"MU",
+			"EWIEGA46WW/moc_cbwall.cpp"
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/logplayer_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/logplayer_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_WIDGETS_LIB",
+		"QT_XML_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer",
+		"/usr/include/x86_64-linux-gnu/qt5",
+		"/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
+		"/usr/include/x86_64-linux-gnu/qt5/QtGui",
+		"/usr/include/x86_64-linux-gnu/qt5/QtCore",
+		"/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++",
+		"/usr/include/x86_64-linux-gnu/qt5/QtNetwork",
+		"/usr/include/x86_64-linux-gnu/qt5/QtXml",
+		"/usr/include/c++/9",
+		"/usr/include/x86_64-linux-gnu/c++/9",
+		"/usr/include/c++/9/backward",
+		"/usr/lib/gcc/x86_64-linux-gnu/9/include",
+		"/usr/local/include",
+		"/usr/include/x86_64-linux-gnu",
+		"/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : true,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/logplayer_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/CMakeFiles/logplayer_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt5/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt5/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"SETTINGS_FILE" : "/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/CMakeFiles/logplayer_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbbeacon.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbclient.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbgrid.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbgridhandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblab.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblabhandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbloghandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cblogplayer.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbparameters.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbparamhandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbpoint.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbposition.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbreceptionhandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbreceptionist.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbrobot.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbtarget.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbview.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbviewhandler.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/cbwall.cpp",
+			"MU"
+		],
+		[
+			"/home/jose/Documents/UA/Y1S2/RM/ciberRatoTools/logplayer/logplayer.cpp",
+			"MU"
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

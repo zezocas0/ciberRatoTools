@@ -14,6 +14,15 @@ class MyRob(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
     # to know if there is a wall on top of cell(i,j) (i in 0..5), check if the value of labMap[i*2+1][j*2] is space or not
+
+        #estimated x,y,theta caltulated by odom
+        self.estx=0.0
+        self.esty=0.0
+        self.estdir=0.0
+        self.dx=0.0
+        self.dy=0.0
+        self.dtheta=0.0
+            
     def setMap(self, labMap):
         self.labMap = labMap
 
@@ -30,8 +39,6 @@ class MyRob(CRobLinkAngs):
         state = 'stop'
         stopped_state = 'run'
         print("connected and running")
-        global no_driving
-        no_driving=0
         while True:
             self.readSensors()
 
@@ -78,71 +85,149 @@ class MyRob(CRobLinkAngs):
         line_measure=remove_noise(self, self.measures.lineSensor)
         line_measure = [int(i) for i in line_measure]
 
-        #the last 4  values of movements
-        if len(movements)>3:
-            
-            movement=movements[-2:]
-            if movement==['backward',"forward"] or movements==["forward","backward"]:
-                
-                if movements[-3]=="left":
-                    print("in a loop, turning left")
-                    self.driveMotors(-0.1,0.1)
-                    movements.append("left")
+        
+
+        ## general motion to turn left or right
+        # move robot
+        self.move_robot(0.15,0.15)
+        # see xy theta position after movement
+        x,y,theta=self.movement_model(0.15,0.15)
+        
+        #check theta to see if its vertical or horizontal(with a range of 10 degrees(90and -90))
+        if 100>theta>80 or -80>theta>-100:
+            #see the diference between the last position and the new one
+            self.dx=y-self.esty
+            #if dx>=2 it means the robot is in a new cell
+            if self.dx >=2:
+                #check if the robot is in a new cell or just in the middle of the cell
+                if self.dx >=3:
+                    #if its in a new cell it means it has to turn left or right
+                    if theta>0:
+                        #turn left
+                        self.move_robot(-0.15,0.15)
+                        #update position
+                        x,y,theta=self.movement_model(-0.15,0.15)
+                        #update position
+                        self.estx=x
+                        self.esty=y
+                        self.estdir=theta
+                        #update map
+                        self.map_memory()
+                        #append movement to list
+                        movements.append('l')
+                    else:
+                        #turn right
+                        self.move_robot(0.15,-0.15)
+                        #update position
+                        x,y,theta=self.movement_model(0.15,-0.15)
+                        #update position
+                        self.estx=x
+                        self.esty=y
+                        self.estdir=theta
+                        #update map
+                        self.map_memory()
+                        #append movement to list
+                        movements.append('r')
                 else:
-                    print("in a loop, turning right")
-                    self.driveMotors(0.1,-0.1)
-                    movements.append("right")
+                    #if its in the middle of the cell it means it has to go forward
+                    self.move_robot(0.15,0.15)
+                    #update position
+                    x,y,theta=self.movement_model(0.15,0.15)
+                    #update position
+                    self.estx=x
+                    self.esty=y
+                    self.estdir=theta
+                    #update map
+                    self.map_memory()
+                    #append movement to list
+                    movements.append('f')
+            
+            
+            
+        pass
+            
 
 
 
+    def movement_model(self,motorL,motorR):
+        # to know how much the robot moved and where it is and its orientation.
+        lin= (motorL+motorR)/2
+        rot=(motorR-motorL)/2
+        
+        #new position values
+        x=self.estx+lin*cos(self.estdir)
+        y=self.esty+lin*sin(self.estdir)
+        theta=self.estddir+rot
+        #turning theta into degrees
+        theta=theta*180/pi
+        
+        return x,y,theta
+        
+        
+    def move_robot(self,motorL,motorR):
+        #to move the robot
+        self.driveMotors(motorL,motorR)
+        
+        
+        
+        
+        
+        
+    def map_memory(self):
+        
+        #to remember the map and where the robot has been as to not repeat the path if theres new ones unexplored
+        #to know where the robot is in the map
+        #starts in positon 0,0. matrix with values. every odd number is a number from self.measures.ground_sensor. either 0,-1,1,2,.. every even number is a line. | if the line is vertical and -if its horizontal. 
+        
+        x=int(self.estx)
+        y=int(self.esty)
+        #to know where the robot is facing
+        theta=self.estdir
+        #to know if the robot is facing up or down
+                
+        if 100>theta>80 or -80>theta>-100:
+                    #to know if the robot is facing up
+                    if theta>0:
+                        #to know if the robot is facing up and if its in a new cell or just in the middle of the cell
+                        if self.dx>=3:
+                            #to know if the robot is in a new cell and if the cell is empty
+                            if self.labMap[y-1][x]==' ':
+                                #to know if the robot is in a new cell and if the cell is empty and if the robot is facing up. if so, add a | to the map
+                                self.labMap[y-1][x]='|'
+                            #to know if the robot is in a new cell and if the cell is not empty and if the robot is facing up. if so, add a X to the map
+                            else:
+                                self.labMap[y-1][x]='X'
+                        #to know if the robot is in the middle of the cell and if the cell is empty
+                        elif self.labMap[y][x]==' ':
+                            #to know if the robot is in the middle of the cell and if the cell is empty and if the robot is facing up. if so, add a | to the map
+                            self.labMap[y][x]='|'
+                        #to know if the robot is in the middle of the cell and if the cell is not empty and if the robot is facing up. if so, add a X to the map
+                        else:
+                            self.labMap[y][x]='X'
+                    #to know if the robot is facing down
+                    else:
+                        #to know if the robot is facing down and if its in a new cell or just in the middle of the cell
+                        if self.dx>=3:
+                            #to know if the robot is in a new cell and if the cell is empty
+                            if self.labMap[y+1][x]==' ':
+                                #to know if the robot is in a new cell and if the cell is empty and if the robot is facing down. if so, add a | to the map
+                                self.labMap[y+1][x]='|'
+                            #to know if the robot is in a new cell and if the cell is not empty and if the robot is facing down. if so, add a X to the map
+                            else:
+                                self.labMap[y+1][x]='X'
+                        #to know if the robot is in the middle of the cell and if the cell is empty
+                        elif self.labMap[y][x]==' ':
+                            #to know if the robot is in the middle of the cell and if the cell is empty and if the robot is facing down. if so, add a | to the map
+                            self.labMap[y][x]='|'
+                        #to know if the robot is in the middle of the cell and if the cell is not empty and if the robot is facing down. if so, add a X to the map
+                        else:
+                            self.labMap[y][x]='X'
 
-        #left movements
-        if all(line_measure[0:3]):
-            self.movement.append("left")
-            print("turning left ")
-            self.driveMotors(-0.05, 0.05)
-            movements.append("left")
-        elif all(line_measure[0:2]):
-            self.movement.append("left")
-            print("turning left -sharp")
-            self.driveMotors(-0.1, 0.1)
-            movements.append("left")
-        elif all(line_measure[1:3]):
-            self.movement.append("left")
-            print("turning  left -slow  ")
-            self.driveMotors(-0.05, 0)
-            movements.append("left")
-
-        # forward movements
-        elif all(line_measure[3:6]) or all(line_measure[2:5]) or all (line_measure[1:4]) or all(line_measure[1:6]):
-            print("moving forward ")
-            self.driveMotors(0.15, 0.15)
-            movements.append("forward")
 
 
-        # right movements
-        elif all(line_measure[4:7]):
-            print("turning right ")
-            self.driveMotors(0.05, -0.05)
-            movements.append("right")
-        elif all(line_measure[5:7]):
-            print("turning right - sharp  ")
-            self.driveMotors(0.1, -0.1)
-            movements.append("right")
-        elif all(line_measure[4:6]):
-            print("turning right - slow ")
-            self.driveMotors(0, -0.05)
-            movements.append("right")
-        # backward movements
-        elif not any(line_measure):
-            print("moving backward ")
-            self.driveMotors(-0.13, -0.13)
-            movements.append("backward")
-        else:
-            # if any other case, moves forward slowly
-            print("moving forward - slow ")
-            self.driveMotors(0.15,0.15)
-            movements.append("nodriving")
+    
+    
+
 
 
 def remove_noise(self,line_measure):

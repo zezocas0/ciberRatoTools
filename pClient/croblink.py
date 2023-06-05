@@ -163,6 +163,7 @@ class CMeasures:
         self.returningLed = False
         self.visitingLed = False
 
+        #compass x,y,theta 
         self.x = 0.0   
         self.y = 0.0   
         self.dir = 0.0
