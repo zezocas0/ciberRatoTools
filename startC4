@@ -7,7 +7,7 @@ ARGS+=" --scoring 6"
 (cd simulator; ./simulator $ARGS) &
 
 sleep 2
-python3 pClient/mainRob_moving.py &
+python3 pClient/MainRob.py &
 (cd Viewer; ./Viewer --autoconnect)
 
 killall simulator
