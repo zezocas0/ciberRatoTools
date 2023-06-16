@@ -314,7 +314,9 @@ class MyRob(CRobLinkAngs):
         # print(abs(x-self.initx),abs(y-self.inity))
         #check final positions to see if in finalPos 
         if abs(x-self.initx)>=2 or abs(y-self.inity-self.linedistance)>=2:
-
+            #make sure that x and y are even
+            x=round(x)
+            y=round(y)
             moved=True
             #updating xy coordinates so that when it reaches 2, it removes noise 
             x,y,th=self.motion_model(0,0)
@@ -403,7 +405,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
     # Adds dict values to the log dict
     # Values of all crossroads
     
-    if action==None:
+    if action==None and x==0 and y==0:
     #at 0,0
         if (x, y) not in logs:
             logs[(x, y)] = {"done_actions": [], "todo_actions": []}
@@ -429,6 +431,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
         
         x=round(x)
         y=round(y)
+        print(x,y)
         self.previousaction=action
         # Create a new dict for the current position if it doesn't exist
         if (x, y) not in logs:
