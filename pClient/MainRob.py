@@ -146,6 +146,35 @@ class MyRob(CRobLinkAngs):
         if compass < 0:
             compass = 360 + compass
 
+        
+        #from last log, determine action from "todo_actions"
+        keys=list(logs.keys())
+        (x,y)=keys[-1]
+        possible_movements=logs[(x,y)]['todo_actions']
+        
+        if possible_movements!=[]:
+            #prioritize going forward
+            if 4 in possible_movements:
+                possible_action=4
+            else:
+                possible_action=random.choice(possible_movements)
+        else:
+            all_movements=logs[(x,y)]['done_actions']
+            possible_action=random.choice(all_movements)
+            
+        #need to see the action_to_0degree_action 
+
+        action=convert_action_to_0degree_action(self,possible_action,compass)
+        
+        return action
+
+
+
+
+
+
+
+    '''
         if len(logs) == 0:  # If no logs, see if it can go forward
             if any(line_measure[3:6]):
                 # Means that the robot can go forward
@@ -186,14 +215,14 @@ class MyRob(CRobLinkAngs):
 
         return action
 
-                    
+      '''              
 
 
     def move(self,action,line_measure): 
         global moved,logs
-        compass=self.measures.compass
-        if compass < 0:
-            compass=360 + compass
+        th=self.measures.compass
+        if th < 0:
+            th=360 + th
                
         #initial positions on the step
          # coordinates based on the logs, to kindof "remove" the noise from motion.
@@ -229,52 +258,74 @@ class MyRob(CRobLinkAngs):
             # 1, for rotating +90
             if action==1:
                 if not moved:
-                    moved,x,y=self.rotate_P(90,compass,moved,line_measure)
+                    moved,x,y,th=self.rotate_P(90,th,moved,line_measure)
                 if moved: 
                     print("in position,stopped")
                     # print(compass)
-                    return x,y,compass,line_measure
-                
+                    # return x,y,th,line_measure
+                    break
             # 2, for rotating -90
             elif action==2:
                 if not moved:
-                    moved,x,y=self.rotate_N(-90,compass,moved,line_measure)
+                    moved,x,y,th=self.rotate_N(90,th,moved,line_measure)
                 if moved:
                     print("in position,stopped")
                     # print(compass)
-                    return x,y,compass,line_measure
+                    # return x,y,th,line_measure
+                    break
                 
             # 3, for rotating +180
             elif action==3:
                 if not moved:
-                    moved,x,y=self.rotate_P(180,compass,moved,line_measure)
+                    moved,x,y,th=self.rotate_P(180,th,moved,line_measure)
                 if moved:
                     print("in position,stopped")
                     # print(compass)
-                    return x,y,compass,line_measure
-                
+                    # return x,y,th,line_measure
+                    break
             # 4, for moving forward 2 units
             elif action==4:
                 
                 if not moved :
-                    moved,x,y=self.move_forward(x,y,compass,line_measure)
+                    moved,x,y=self.move_forward(x,y,th,line_measure)
                 if moved :
                     print("in position,stopped")
                     # print(x,y)
-                    return x,y,compass,line_measure
-                
+                    return x,y,th,line_measure
+
         
-            
+        
             self.readSensors()
             line_measure=remove_noise(self, self.measures.lineSensor)
             line_measure = [int(i) for i in line_measure]
             self.linesensors.append(line_measure)
             
-            compass=self.measures.compass
-            if compass < 0:
-                compass=360 + compass
-            
+            th=self.measures.compass
+            if th < 0:
+                th=360 + th
         
+        #if it moves and last action isnt 4, then it means it rotated, and needs to move forward
+        if moved and action!=4:
+            moved=False
+            while not moved:
+                if not moved:
+                    moved,x,y=self.move_forward(x,y,th,line_measure)
+                if moved:
+                    print("in position,stopped")
+                    # print(x,y)
+                    return x,y,th,line_measure
+        
+
+        
+                self.readSensors()
+                line_measure=remove_noise(self, self.measures.lineSensor)
+                line_measure = [int(i) for i in line_measure]
+                self.linesensors.append(line_measure)
+                
+                th=self.measures.compass
+                if th < 0:
+                    th=360 + th
+            
          
     
   
@@ -328,19 +379,19 @@ class MyRob(CRobLinkAngs):
         
         
         
-    def rotate_P(self,target_angle,compass,moved,line_measure):
+    def rotate_P(self,target_angle,th,moved,line_measure):
         #rotating positively(right to left )
         angle_threshold=4
         # print(compass)
         
-        if abs(compass - target_angle)<= angle_threshold:
+        if abs(th - target_angle)<= angle_threshold:
             moved=True
             x,y,th=self.motion_model(0,0)
             self.driveMotors(0,0)
             
             if all(line_measure[2:5]):
             #to check if it is perfectly aligned
-                return moved,x,y
+                return moved,x,y,th
             
             
         else: 
@@ -348,24 +399,26 @@ class MyRob(CRobLinkAngs):
             self.driveMotors(-0.01,0.01)
             x,y,th=self.motion_model(-0.01,0.01)
 
-        return moved,x,y
+        return moved,x,y,th
         
         
-    def rotate_N(self,target_angle,compass,moved,line_measure):
+    def rotate_N(self,target_angle,th,moved,line_measure):
         #rotating negatively(left to right )
         angle_threshold=4
 
             
-        if abs(compass - target_angle)<= angle_threshold:
-            self.driveMotors(0,0)
+        if abs(th - target_angle)<= angle_threshold:
             moved=True
             x,y,th=self.motion_model(0,0)
+            self.driveMotors(0,0)
+            if all(line_measure[2:5]):
+                return moved,x,y,th
         else: 
             
             self.driveMotors(0.01,-0.01)
             x,y,th=self.motion_model(0.01,-0.01)
             
-        return moved,x,y
+        return moved,x,y,th
         
         
 
@@ -406,7 +459,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
     # Values of all crossroads
     
     if action==None and x==0 and y==0:
-    #at 0,0
+    #at 0,0 in the beginning theres no action. its only to log the only options
         if (x, y) not in logs:
             logs[(x, y)] = {"done_actions": [], "todo_actions": []}
             # print("Adding new position to logs")
@@ -500,7 +553,8 @@ def calculate_possible_actions(self,line_measure,compass):
     else:
         possible_actions.append(3)  
         #nothing at the end, turn back
-    
+    #it should always be able to turn backwards
+    possible_actions.append(3)
      
     #no repeating values
     possible_actions = list(set(possible_actions))
