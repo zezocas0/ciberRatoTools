@@ -250,13 +250,14 @@ class MyRob(CRobLinkAngs):
                     break
             # 2, for rotating -90
             elif action==2:
+                
                 target_angle=self.initth-90
                 if target_angle<0:
                     target_angle=target_angle+360
                     
                 if not moved:
                     moved,x,y,th=self.rotate_N(target_angle,th,moved,line_measure)
-                    
+                    print(f"rotaing right to {target_angle}, current angle {th},range{target_angle-th}")
                 if moved:
                     print("in position,stopped")
                     # print(compass)
@@ -397,9 +398,10 @@ class MyRob(CRobLinkAngs):
         
     def rotate_N(self,target_angle,th,moved,line_measure):
           #rotating positively(right to left )
-        angle_threshold=1
+        angle_threshold=0.8
         # print(compass)
         if abs(th - target_angle)<= angle_threshold:
+            
             moved=True
             x,y,th=self.movement_model(0,0)
             self.driveMotors(0,0)
@@ -407,8 +409,6 @@ class MyRob(CRobLinkAngs):
             if all(line_measure[2:5]):
             #to check if it is perfectly aligned
                 return moved,x,y,th
-            
-            
         else: 
             
             self.driveMotors(0.01,-0.01)
@@ -443,6 +443,13 @@ class MyRob(CRobLinkAngs):
         self.estdir=theta
         #turn theta to degrees
         th=degrees(theta)
+        #th should be between 0 and 360
+        if th<0:
+            th=360+th
+        elif th>360:
+            th=th-360
+        else:
+            th=th
         
         
         return x,y,th
