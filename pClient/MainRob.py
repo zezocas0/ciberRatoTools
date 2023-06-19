@@ -18,6 +18,7 @@ global  moved,logs
 
 moved=False
 logs={}
+map=[]
 
 class MyRob(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
@@ -40,8 +41,7 @@ class MyRob(CRobLinkAngs):
         self.linesensors=[]
         self.previousaction=[]
         #1=left,2=right,3=back,4=front
-        
-            
+
     def setMap(self, labMap):
         self.labMap = labMap
 
@@ -72,9 +72,10 @@ class MyRob(CRobLinkAngs):
                 compass=360+compass
             
             #Initial log that is needed
-            logs = logging(self, logs, self.x, self.y, line_measure, compass, action=None)
+            logs = logging(self, logs, self.x, self.y,self.theta, line_measure, action=None)
             # print("logs",logs)
-    
+
+            map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
             
             if self.measures.endLed:
                 print(self.robName + " exiting")
@@ -123,7 +124,7 @@ class MyRob(CRobLinkAngs):
         
         self.x,self.y,line_measure,compass=self.move(action,line_measure)
 
-        logs = logging(self, logs, self.x, self.y, line_measure, compass, action)
+        logs = logging(self, logs, self.x, self.y,self.theta, line_measure, action)
         print("last 2 logs",  list(logs.keys())[-1:])
         moved=False
         
@@ -131,6 +132,7 @@ class MyRob(CRobLinkAngs):
         
          
         #TODO: make map function
+        map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
         
         self.readSensors()
         line_measure=remove_noise(self, self.measures.lineSensor)
@@ -141,81 +143,43 @@ class MyRob(CRobLinkAngs):
 
     def determine_action(self, line_measure, x, y):
         # From linesensor readings determine action
-        global moved, logs
+        global moved, logs,map
         compass = self.measures.compass
         if compass < 0:
             compass = 360 + compass
 
         
         #from last log, determine action from "todo_actions"
+        
         keys=list(logs.keys())
         (x,y)=keys[-1]
         possible_movements=logs[(x,y)]['todo_actions']
-        
-        if possible_movements!=[]:
-            #prioritize going forward
+
+        if possible_movements != []:
+            # prioritize going forward
             if 4 in possible_movements:
-                possible_action=4
+                possible_action = 4
+            # then left or right
+            elif 1 in possible_movements and 2 in possible_movements:
+                possible_action = random.choice([1,2])
+            # else go backwards
             else:
-                possible_action=random.choice(possible_movements)
+                possible_action = 3
         else:
             all_movements=logs[(x,y)]['done_actions']
             possible_action=random.choice(all_movements)
             
         #need to see the action_to_0degree_action 
-
-        action=convert_action_to_0degree_action(self,possible_action,compass)
+        #TODO: change this to logging to save the actions into the 0 degree action. 
+  
+        
+        action=convert_0degree_action_to_action(self,possible_action,compass)
         
         return action
 
 
 
-
-
-
-
-    '''
-        if len(logs) == 0:  # If no logs, see if it can go forward
-            if any(line_measure[3:6]):
-                # Means that the robot can go forward
-                action = 4
-                return action
-            else:
-                # If the robot can't go forward, go left until we can
-                action = 1
-                return action
-        else:
-            dega0 = convert_action_to_0degree_action(self, 4, compass)
-
-            if (dega0, x, y) in logs:
-                if dega0 in logs[(dega0, x, y)]['done_actions']:
-                    # The robot has already moved forward in this position
-                    # Check if it can move based on todo_actions of logs in this position
-                    if not len(logs[(dega0, x, y)]['todo_actions']) == 0:
-                        # There are todo_actions, choose a random action from todo_actions
-                        action = random.choice(logs[(dega0, x, y)]['todo_actions'])
-                    else:
-                        # If it can't move forward or rotate, rotate 180
-                        action = 3
-                        return action
-                else:
-                    # The robot hasn't moved forward in this position, so we move forward
-                    action = 4
-
-                    if not len(logs[(dega0, x, y)]['todo_actions']) == 0:
-                        # There are todo_actions, choose a random action from todo_actions
-                        action = random.choice(logs[(dega0, x, y)]['todo_actions'])
-                    else:
-                        # If it can't move forward or rotate, rotate 180
-                        action = 3
-                        return action
-            else:
-                # The robot hasn't moved forward in this position, so we move forward
-                action = 4
-
-        return action
-
-      '''              
+         
 
 
     def move(self,action,line_measure): 
@@ -227,7 +191,7 @@ class MyRob(CRobLinkAngs):
         #initial positions on the step
          # coordinates based on the logs, to kindof "remove" the noise from motion.
         if len(logs)==0:    
-            x,y,init_th=self.motion_model(0,0)
+            x,y,init_th=self.movement_model(0,0)
             self.initx=x
             self.inity=y
         else:
@@ -267,7 +231,8 @@ class MyRob(CRobLinkAngs):
             # 2, for rotating -90
             elif action==2:
                 if not moved:
-                    moved,x,y,th=self.rotate_N(90,th,moved,line_measure)
+                    moved,x,y,th=self.rotate_N(270,th,moved,line_measure)
+                    print(x,y,th)
                 if moved:
                     print("in position,stopped")
                     # print(compass)
@@ -329,48 +294,45 @@ class MyRob(CRobLinkAngs):
          
     
   
-    def move_forward(self,x,y,compass,line_measure):
+    def move_forward(self,x,y,th,line_measure):
         #moving forward units units
         global moved,logs  
         
         self.estx=x
         self.esty=y
-        
+        est_th=th
 
         # x,y,th=forwardConstraints(self,line_measure)
         ## MOVEMENT FROM PERCEPTION AND CONTROL(analitical movement) ## 
         # forward movements
-        if all(line_measure):
-            self.driveMotors(0.04,0.04)
-            x,y,th=self.motion_model(0.04,0.04)  
-
-        elif all(line_measure[2:5]):
+        if all(line_measure[2:5]):
             #forward movements
             self.driveMotors(0.04,0.04)
-            x,y,th=self.motion_model(0.04,0.04)
+            x,y,th=self.movement_model(0.04,0.04)
             #left movements
         elif all(line_measure[0:3]):
             self.driveMotors(-0.01,0.01)
-            x,y,th=self.motion_model(-0.01,0.01)
+            x,y,th=self.movement_model(-0.01,0.01)
         # right movements
         elif all(line_measure[4:7]):
             self.driveMotors(0.01,-0.01)
-            x,y,th=self.motion_model(0.01,-0.01)
+            x,y,th=self.movement_model(0.01,-0.01)
         else:
             #move forward
             self.driveMotors(0.01,0.01)
-            x,y,th=self.motion_model(0.01,0.01)
+            x,y,th=self.movement_model(0.01,0.01)
             
             
         # print(abs(x-self.initx),abs(y-self.inity))
+        # print(x,y,th)
         #check final positions to see if in finalPos 
-        if abs(x-self.initx)>=2 or abs(y-self.inity-self.linedistance)>=2:
+        if abs(x-self.initx)>=2 or abs(y-self.inity)>=2:
             #make sure that x and y are even
             x=round(x)
             y=round(y)
             moved=True
             #updating xy coordinates so that when it reaches 2, it removes noise 
-            x,y,th=self.motion_model(0,0)
+            x,y,th=self.movement_model(0,0)
             self.driveMotors(0,0)
             
         return moved,x,y
@@ -381,12 +343,14 @@ class MyRob(CRobLinkAngs):
         
     def rotate_P(self,target_angle,th,moved,line_measure):
         #rotating positively(right to left )
-        angle_threshold=4
+        angle_threshold=0.8
+
         # print(compass)
         
         if abs(th - target_angle)<= angle_threshold:
+            
             moved=True
-            x,y,th=self.motion_model(0,0)
+            x,y,th=self.movement_model(0,0)
             self.driveMotors(0,0)
             
             if all(line_measure[2:5]):
@@ -397,34 +361,34 @@ class MyRob(CRobLinkAngs):
         else: 
             
             self.driveMotors(-0.01,0.01)
-            x,y,th=self.motion_model(-0.01,0.01)
+            x,y,th=self.movement_model(-0.01,0.01)
 
         return moved,x,y,th
         
         
     def rotate_N(self,target_angle,th,moved,line_measure):
-        #rotating negatively(left to right )
-        angle_threshold=4
-
-            
+          #rotating positively(right to left )
+        angle_threshold=1
+        # print(compass)
         if abs(th - target_angle)<= angle_threshold:
             moved=True
-            x,y,th=self.motion_model(0,0)
+            x,y,th=self.movement_model(0,0)
             self.driveMotors(0,0)
+            
             if all(line_measure[2:5]):
+            #to check if it is perfectly aligned
                 return moved,x,y,th
+            
+            
         else: 
             
             self.driveMotors(0.01,-0.01)
-            x,y,th=self.motion_model(0.01,-0.01)
-            
-        return moved,x,y,th
-        
-        
+            x,y,th=self.movement_model(0.01,-0.01)
 
+        return moved,x,y,th
    
 
-    def motion_model(self,motorL,motorR):
+    def movement_model(self,motorL,motorR):
         # to know how much the robot moved and where it is and its orientation.
         noise=(random.gauss(1,0.15**2),random.gauss(1,0.15**2))
 
@@ -432,29 +396,120 @@ class MyRob(CRobLinkAngs):
 
         lin= (motorL+motorR)/2
         rot= (motorR-motorL)/1 
-        
+        t_last=self.estdir
         #new position values
-        x=self.estx+lin*cos(self.estdir)
-        y=self.esty+lin*sin(self.estdir)
         
-        theta=self.estdir+rot
+        x=self.estx+lin*cos(t_last)
+        y=self.esty+lin*sin(t_last)
         
+        theta=t_last+rot
         # convert theta to radians and ensure it is within the range of 0 to 2pi
-        theta = theta % (2 * pi)
-        theta = radians(theta)
+        if theta > 2*pi:
+            theta = theta - 2*pi
+            
         
         #updating values
         self.x=x
         self.y=y    
+        self.estdir=theta
         #turn theta to degrees
         th=degrees(theta)
         
+        
         return x,y,th
-        
-        
-        
+            
+    def update_map(self, x, y, theta, logs, line_measure):
+        global map
+        print("updating map")
+        all_actions = []
+
     
-def logging(self, logs, x, y, line_measure, compass, action=None):
+        # obtain last logs
+        keys = list(logs.keys())
+        last_log = keys[-1]
+        # obtain the tdodo and done actions of the last log
+        all_actions = logs[last_log]["todo_actions"] + logs[last_log]["done_actions"]
+
+
+        if(map == []) or  (last_log[0]==0 and last_log[1]==0) :
+            # first map update
+            # create a matrix of all ' ' value cells with a size of 21*
+            map = [[' ' for _ in range(49)] for _ in range(21)]
+            # put 0 in the middle of the map, coordinates 11, 25
+            point0 = 11 * 49 + 25
+            zeroy = point0 % 49
+            zerox = point0 // 49
+
+
+            # update map with the first position of the robot
+            map[zerox][zeroy] = '0'
+
+
+            # define the directions
+            for i in all_actions:
+                if i == 1:
+                #if 1(left), add | above the zerox, zeroy
+                    map[zerox-1][zeroy] = '|'
+                
+                if i==2:
+                #if 2(right),add | below the zerox, zeroy
+                    map[zerox+1][zeroy] = '|'
+                if i==3:
+                #if 3(behind), add - to the left of zerox, zeroy
+                    map[zerox][zeroy-1] = '-'
+                if i==4:
+                #if 4(forward), add - to the right of zerox, zeroy
+                    map[zerox][zeroy+1] = '-'
+                    
+                
+                
+                
+        else:
+            
+            point0 = 11 * 49 + 25
+            zeroy = point0 % 49
+            zerox = point0 // 49
+            
+            # obtain last logs
+            keys = list(logs.keys())
+            last_log = keys[-1]
+            # obtain the tdodo and done actions of the last log
+            all_actions = logs[last_log]["todo_actions"] + logs[last_log]["done_actions"]
+
+            logx=last_log[1]
+            logy=last_log[0]
+            print(logx,logy)
+            print(zerox,zeroy)
+            beaconx=zerox+logx
+            beacony=zeroy+logy
+            # define the directions
+            for i in all_actions:
+                if i == 1:
+                #if 1(left), add | above the zerox, zeroy
+                    map[beaconx-1][beacony] = '|'
+                
+                if i==2:
+                #if 2(right),add | below the zerox, zeroy
+                    map[zerox+1][beacony] = '|'
+                if i==3:
+                #if 3(behind), add - to the left of zerox, zeroy
+                    map[beaconx][beacony-1] = '-'
+                if i==4:
+                #if 4(forward), add - to the right of zerox, zeroy
+                    map[beaconx][beacony+1] = '-'
+                
+            for i in range(21):
+                print(map[i])    
+                
+
+                
+
+        return
+
+    
+      
+    
+def logging(self, logs, x, y,th, line_measure, action=None):
     # Adds dict values to the log dict
     # Values of all crossroads
     
@@ -465,7 +520,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
-        possible_actions = calculate_possible_actions(self,line_measure, compass)
+        possible_actions = calculate_possible_actions(self,line_measure, th)
 
         todo_actions = [a for a in possible_actions if a not in logs[(x, y)]["done_actions"]]
         logs[(x, y)]["todo_actions"] = todo_actions
@@ -475,7 +530,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
         #keys -1 may not exist, so we need to check if it exists
         # Update the done_actions list of previous position, and remove the action from the todo_actions list
 
-           
+ 
     
     
     if moved:
@@ -492,7 +547,7 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
-        possible_actions = calculate_possible_actions(self,line_measure, compass)
+        possible_actions = calculate_possible_actions(self,line_measure, th)
 
         todo_actions = [a for a in possible_actions if a not in logs[(x, y)]["done_actions"]]
         logs[(x, y)]["todo_actions"] = todo_actions
@@ -524,10 +579,10 @@ def logging(self, logs, x, y, line_measure, compass, action=None):
     return logs
 
 
-def calculate_possible_actions(self,line_measure,compass):
+def calculate_possible_actions(self,line_measure,th):
     #from the linesensor, we calculate all possible actions when the robot is on a crossroad
     global moved
-    possible_actions=[]
+    possible_actions=[]; possible_actions_in0=[]
     
     # Calculate the difference between the first array and all the other arrays
     diff = np.diff(self.linesensors, axis=0)
@@ -553,22 +608,32 @@ def calculate_possible_actions(self,line_measure,compass):
     else:
         possible_actions.append(3)  
         #nothing at the end, turn back
-    #it should always be able to turn backwards
-    possible_actions.append(3)
-     
+    
     #no repeating values
     possible_actions = list(set(possible_actions))
-   
+    
+    #for all possible_actions, convert them to when the action would be at 0 degrees
+    for i in range(len(possible_actions)):
+ 
+        # do something with possible_actions[i]
+        action=convert_action_to_0degree_action(self,possible_actions[i],th)
+        possible_actions_in0.append(action)
+ 
     # print("possibleactions",possible_actions)
-    return possible_actions
+    return possible_actions_in0
 
-def convert_action_to_0degree_action(self,action,compass):
+def convert_action_to_0degree_action(self,action,th):
     #converts the action to a 0 degree action
     #4=forwards,1=left,2=right,3=turn around
-    orientations={ 0:{4:4,1:1,2:2,3:3},90:{4:1,1:3,2:4,3:2},180:{4:3,1:2,2:1,3:4},270:{4:2,1:4,2:3,3:1}}
+    orientations={ 
+                  0:{4:4,1:1,2:2,3:3},
+                  90:{4:1,1:3,2:4,3:2},
+                  180:{4:3,1:2,2:1,3:4},
+                  270:{4:2,1:4,2:3,3:1}
+                  }
 
     #checking which orientation is closest now
-    possible_ori=[abs(compass-0),abs(compass-90),abs(compass-180),abs(compass-270),abs(compass-360)]
+    possible_ori=[abs(th-0),abs(th-90),abs(th-180),abs(th-270),abs(th-360)]
     ori_now=[0,90,180,270,0][possible_ori.index(min(possible_ori))]
     
     try:
@@ -581,9 +646,32 @@ def convert_action_to_0degree_action(self,action,compass):
         print(f"keyerror {e}")
         print(ori_now,action)    
         print(possible_ori)
+        
+def convert_0degree_action_to_action(self, action, compass):
+    # Converts the 0 degree action to the original action
+    # 4=forwards, 1=left, 2=right, 3=turn around
+    orientations = {
+        0: {4: 4, 1: 1, 2: 2, 3: 3},
+        90: {4: 2, 1: 4, 2: 2, 3: 1},
+        180: {4: 3, 1: 2, 2: 1, 3: 4},
+        270: {4: 1, 1: 3, 2: 4, 3: 2}
+    }
+
+    # Checking which orientation is closest now
+    possible_ori = [abs(compass - 0), abs(compass - 90), abs(compass - 180), abs(compass - 270), abs(compass - 360)]
+    ori_now = [0, 90, 180, 270, 0][possible_ori.index(min(possible_ori))]
+
+    try:
+        # print("ori",orientations[ori_now][action])
+        possible_actions=orientations[ori_now][action]
+        return possible_actions
     
-    
-    
+
+    except KeyError as e:
+        print(f"KeyError {e}")
+        print(ori_now, action)
+        print(possible_ori)
+
     
     
     
