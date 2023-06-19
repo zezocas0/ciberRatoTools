@@ -433,7 +433,6 @@ class MyRob(CRobLinkAngs):
             
     def update_map(self, x, y, theta, logs, line_measure):
         global map
-        print("updating map")
         all_actions = []
 
     
@@ -488,13 +487,19 @@ class MyRob(CRobLinkAngs):
             last_log = keys[-1]
             # obtain the tdodo and done actions of the last log
             all_actions = logs[last_log]["todo_actions"] + logs[last_log]["done_actions"]
-
+            log_ground_sensor=logs[last_log]["beacons"]
+                
+            
             logx=last_log[1]
             logy=last_log[0]
-            print(logx,logy)
-            print(zerox,zeroy)
             beaconx=zerox+logx
             beacony=zeroy+logy
+            
+            #to see if its in a beacon
+            if log_ground_sensor!= [-1]:
+                map[beaconx][beacony]=log_ground_sensor
+            
+            
             # define the directions
             for i in all_actions:
                 if i == 1:
@@ -511,11 +516,22 @@ class MyRob(CRobLinkAngs):
                 #if 4(forward), add - to the right of zerox, zeroy
                     map[beaconx][beacony+1] = '-'
                 
-            for i in range(21):
-                print(map[i])    
+             
+            # print(logx,logy)
+            # print(zerox,zeroy)
+            
+            # print("updating map")   
+            # for i in range(21):
+            #     print(map[i])    
                 
+        # Save the map to a file
+        
+        with open("mapping.out", "w") as file:
+            for row in map:
+                file.write(' '.join(str(cell) for cell in row) + '\n')
 
-                
+        
+        
 
         return
 
@@ -529,7 +545,7 @@ def logging(self, logs, x, y,th, line_measure, action=None):
     if action==None and x==0 and y==0:
     #at 0,0 in the beginning theres no action. its only to log the only options
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": []}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
@@ -542,7 +558,9 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         #action is from pervious position, so we add it to the done_actions from -2 logs
         #keys -1 may not exist, so we need to check if it exists
         # Update the done_actions list of previous position, and remove the action from the todo_actions list
-
+        ground_sensor=self.measures.ground
+        logs[(x,y)]["beacons"].append(ground_sensor)
+            
  
     
     
@@ -556,7 +574,7 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         self.previousaction=action
         # Create a new dict for the current position if it doesn't exist
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": []}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
@@ -565,7 +583,9 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         todo_actions = [a for a in possible_actions if a not in logs[(x, y)]["done_actions"]]
         logs[(x, y)]["todo_actions"] = todo_actions
         # Update the todo_actions list for the current position
-
+        ground_sensor=self.measures.ground
+        logs[(x,y)]["beacons"].append(ground_sensor)
+            
         #action is from pervious position, so we add it to the done_actions from -2 logs
         
         keys = list(logs.keys())
