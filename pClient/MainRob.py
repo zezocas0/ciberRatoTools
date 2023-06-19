@@ -128,7 +128,7 @@ class MyRob(CRobLinkAngs):
         
         # MOVEMENT 
         
-        self.x,self.y,line_measure,compass=self.move(action,line_measure)
+        self.x,self.y,self.theta,line_measure=self.move(action,line_measure)
 
         logs = logging(self, logs, self.x, self.y,self.theta, line_measure, action)
         print("last 2 logs",  list(logs.keys())[-1:])
@@ -190,9 +190,6 @@ class MyRob(CRobLinkAngs):
 
     def move(self,action,line_measure): 
         global moved,logs
-        th=self.measures.compass
-        if th < 0:
-            th=360 + th
                
         #initial positions on the step
          # coordinates based on the logs, to kindof "remove" the noise from motion.
@@ -200,6 +197,8 @@ class MyRob(CRobLinkAngs):
             x,y,init_th=self.movement_model(0,0)
             self.initx=x
             self.inity=y
+            self.initth=init_th
+            th=self.initth
         else:
             #checking last position in the logs
             # if -1 in logs and 'position' in logs[-1]:
@@ -209,6 +208,8 @@ class MyRob(CRobLinkAngs):
             (x,y)= keys[-1]
             self.initx=x
             self.inity=y
+            self.initth=logs[(x,y)]['th']
+            th=self.initth
         
                     
         
@@ -227,8 +228,12 @@ class MyRob(CRobLinkAngs):
             
             # 1, for rotating +90
             if action==1:
+                target_angle=90+self.initth
+                if target_angle>=360:
+                    target_angle=target_angle-360
+                
                 if not moved:
-                    moved,x,y,th=self.rotate_P(90,th,moved,line_measure)
+                    moved,x,y,th=self.rotate_P(target_angle,th,moved,line_measure)
                 if moved: 
                     print("in position,stopped")
                     # print(compass)
@@ -236,9 +241,13 @@ class MyRob(CRobLinkAngs):
                     break
             # 2, for rotating -90
             elif action==2:
+                target_angle=self.initth-90
+                if target_angle<0:
+                    target_angle=target_angle+360
+                    
                 if not moved:
-                    moved,x,y,th=self.rotate_N(270,th,moved,line_measure)
-                    print(x,y,th)
+                    moved,x,y,th=self.rotate_N(target_angle,th,moved,line_measure)
+                    
                 if moved:
                     print("in position,stopped")
                     # print(compass)
@@ -247,8 +256,12 @@ class MyRob(CRobLinkAngs):
                 
             # 3, for rotating +180
             elif action==3:
+                target_angle=180+self.initth
+                if target_angle>=360:
+                    target_angle=target_angle-360
+                
                 if not moved:
-                    moved,x,y,th=self.rotate_P(180,th,moved,line_measure)
+                    moved,x,y,th=self.rotate_P(target_angle,th,moved,line_measure)
                 if moved:
                     print("in position,stopped")
                     # print(compass)
@@ -271,9 +284,6 @@ class MyRob(CRobLinkAngs):
             line_measure = [int(i) for i in line_measure]
             self.linesensors.append(line_measure)
             
-            th=self.measures.compass
-            if th < 0:
-                th=360 + th
         
         #if it moves and last action isnt 4, then it means it rotated, and needs to move forward
         if moved and action!=4:
@@ -293,11 +303,8 @@ class MyRob(CRobLinkAngs):
                 line_measure = [int(i) for i in line_measure]
                 self.linesensors.append(line_measure)
                 
-                th=self.measures.compass
-                if th < 0:
-                    th=360 + th
             
-         
+        return x,y,th,line_measure
     
   
     def move_forward(self,x,y,th,line_measure):
@@ -545,7 +552,7 @@ def logging(self, logs, x, y,th, line_measure, action=None):
     if action==None and x==0 and y==0:
     #at 0,0 in the beginning theres no action. its only to log the only options
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[],"th":th}
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
@@ -574,7 +581,7 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         self.previousaction=action
         # Create a new dict for the current position if it doesn't exist
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[],"th":th}
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
