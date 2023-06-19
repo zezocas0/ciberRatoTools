@@ -6,8 +6,7 @@ from  math import cos,sin,radians, pi,degrees
 import numpy as np
 import random
 
-from lib.pid import PIDController
-
+from lib.pid import PIDController 
 
 
 
@@ -34,19 +33,23 @@ class MyRob(CRobLinkAngs):
 
         self.x=0.0
         self.y=0.0
+        self.th=0.0
+        
         self.theta=0.0
-        self.linedistance=0.438
         
         self.initx=0
         self.inity=0
         self.linesensors=[]
         self.previousaction=[]
         #1=left,2=right,3=back,4=front
-        
+
+        # kp= 0.2
+        # ki =0.0499
+        # kd =0.000
         kp = 0.05138938976206109
         ki = 0.0022398605506287416
         kd = 0.0008512325205835791
-        self.pid_controller=PIDController(kp,ki,kd)
+        self.pid_controller = PIDController(kp, ki, kd)
 
     def setMap(self, labMap):
         self.labMap = labMap
@@ -123,22 +126,31 @@ class MyRob(CRobLinkAngs):
 
        
         # DETERMINE BEST ACTION 
-        action=self.determine_action(line_measure,self.x,self.y)
-        print("New Action! ",action)
+        action=self.determine_action(line_measure,self.x,self.y,self.theta)
+         
         
+        if action==4:
+            print("New action: moving forward")
+        elif action==1:
+            print("New action: turning left")
+        elif action==2:
+            print("New action: turning right")
+        elif action==3:
+            print("New action: turning 180")
+
         # MOVEMENT 
         
-        self.x,self.y,line_measure,compass=self.move(action,line_measure)
+        self.x,self.y,self.th,line_measure=self.move(action,line_measure)
 
-        logs = logging(self, logs, self.x, self.y,self.theta, line_measure, action)
-        print("last 2 logs",  list(logs.keys())[-1:])
+        logs = logging(self, logs, self.x, self.y,self.th, line_measure, action)
+
         moved=False
         
         #UPDATE MAP
         
          
         #TODO: make map function
-        map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
+        map=self.update_map(self.x,self.y,self.th,logs,line_measure)
         
         self.readSensors()
         line_measure=remove_noise(self, self.measures.lineSensor)
@@ -147,39 +159,47 @@ class MyRob(CRobLinkAngs):
 
             
 
-    def determine_action(self, line_measure, x, y):
+    def determine_action(self, line_measure, x,y, theta):
         # From linesensor readings determine action
         global moved, logs,map
-        compass = self.measures.compass
-        if compass < 0:
-            compass = 360 + compass
-
         
         #from last log, determine action from "todo_actions"
         
         keys=list(logs.keys())
-        (x,y)=keys[-1]
-        possible_movements=logs[(x,y)]['todo_actions']
-
-        if possible_movements != []:
-            # prioritize going forward
-            if 4 in possible_movements:
-                possible_action = 4
-            # then left or right
-            elif 1 in possible_movements and 2 in possible_movements:
-                possible_action = random.choice([1,2])
-            # else go backwards
-            else:
-                possible_action = 3
+        lastlog=keys[-1]
+        possible_movements=logs[(lastlog)]["todo_actions"]
+        
+        #random choice in all possible movements
+        # prioritize going forward
+        if 4 in possible_movements:
+            possible_action = 4
+            
+        elif 1 in possible_movements:
+            possible_action=1
+        elif 2 in possible_movements:
+            possible_action=2
+        elif 3 in possible_movements:
+            possible_action=3
+            
+            
+            
+            possible_action=random.choice(possible_movements)
+            
+            
+        # # then left or right
+        # elif 1 in possible_movements and 2 in possible_movements:
+        #     possible_action = random.choice([1,2])
+        # # else go backwards
+        # else:
+        #     possible_action = 3
         else:
-            all_movements=logs[(x,y)]['done_actions']
+            all_movements=logs[lastlog]['done_actions']
             possible_action=random.choice(all_movements)
             
+        
         #need to see the action_to_0degree_action 
         #TODO: change this to logging to save the actions into the 0 degree action. 
-  
-        
-        action=convert_0degree_action_to_action(self,possible_action,compass)
+        action=convert_0degree_action_to_action(self,possible_action,theta)
         
         return action
 
@@ -190,10 +210,7 @@ class MyRob(CRobLinkAngs):
 
     def move(self,action,line_measure): 
         global moved,logs
-        th=self.measures.compass
-        if th < 0:
-            th=360 + th
-               
+
         #initial positions on the step
          # coordinates based on the logs, to kindof "remove" the noise from motion.
         if len(logs)==0:    
@@ -209,60 +226,45 @@ class MyRob(CRobLinkAngs):
             (x,y)= keys[-1]
             self.initx=x
             self.inity=y
-        
-                    
-        
-        if action==4:
-            print("moving forward")
-        elif action==1:
-            print("turning left")
-        elif action==2:
-            print("turning right")
-        elif action==3:
-            print("turning 180")
-
+        initth=self.th
+           
            
         while not moved:
                 
-            
+                
             # 1, for rotating +90
             if action==1:
                 if not moved:
-                    moved,x,y,th=self.rotate_P(90,th,moved,line_measure)
+                    moved,x,y,self.th=self.rotate_P(initth+90,self.th,moved,line_measure)
                 if moved: 
                     print("in position,stopped")
-                    # print(compass)
+                    
                     # return x,y,th,line_measure
                     break
             # 2, for rotating -90
             elif action==2:
                 if not moved:
-                    moved,x,y,th=self.rotate_N(270,th,moved,line_measure)
-                    print(x,y,th)
+                    moved,x,y,self.th=self.rotate_P(initth-90,self.th,moved,line_measure)
                 if moved:
                     print("in position,stopped")
-                    # print(compass)
                     # return x,y,th,line_measure
                     break
                 
             # 3, for rotating +180
             elif action==3:
                 if not moved:
-                    moved,x,y,th=self.rotate_P(180,th,moved,line_measure)
+                    moved,x,y,self.th=self.rotate_P(initth+180,self.th,moved,line_measure)
                 if moved:
                     print("in position,stopped")
-                    # print(compass)
-                    # return x,y,th,line_measure
                     break
             # 4, for moving forward 2 units
             elif action==4:
                 
                 if not moved :
-                    moved,x,y=self.move_forward(x,y,th,line_measure)
+                    moved,x,y=self.move_forward(x,y,self.th,line_measure)
                 if moved :
-                    print("in position,stopped")
-                    # print(x,y)
-                    return x,y,th,line_measure
+                    # print(f"in position{x},{y},stopped")
+                    return x,y,self.th,line_measure
 
         
         
@@ -270,43 +272,67 @@ class MyRob(CRobLinkAngs):
             line_measure=remove_noise(self, self.measures.lineSensor)
             line_measure = [int(i) for i in line_measure]
             self.linesensors.append(line_measure)
-            
-            th=self.measures.compass
-            if th < 0:
-                th=360 + th
+
+        
+        
         
         #if it moves and last action isnt 4, then it means it rotated, and needs to move forward
         if moved and action!=4:
             moved=False
+            self.linesensors=[]
             while not moved:
-                if not moved:
-                    moved,x,y=self.move_forward(x,y,th,line_measure)
+                
+                moved,x,y=self.move_forward(x,y,self.th,line_measure)
                 if moved:
-                    print("in position,stopped")
-                    # print(x,y)
-                    return x,y,th,line_measure
-        
+                    print(f"in position{x},{y},stopped")
+                    
+                    return x,y,self.th,line_measure,
 
         
                 self.readSensors()
                 line_measure=remove_noise(self, self.measures.lineSensor)
                 line_measure = [int(i) for i in line_measure]
                 self.linesensors.append(line_measure)
-                
-                th=self.measures.compass
-                if th < 0:
-                    th=360 + th
+                print(line_measure)        
+                self.th=self.measures.compass
+                if self.th < 0:
+                    self.th=360 + self.th
+        
+        return x,y,self.th,line_measure
+        
+    def rotate_P(self,target_angle,th,moved,line_measure):
+        #rotating positively(right to left )
+        angle_threshold=1
+        #check if target angle is inside 0-360
+        if target_angle<0:
+            target_angle+=360
+        elif target_angle>360:
+            target_angle-=360
+        
+        # print("target, angle now, var",target_angle,th,abs(target_angle-th))
+        
+        if abs(th - target_angle)<= angle_threshold:
+            moved=True
+            x,y,th=self.movement_model(0,0)
+            self.driveMotors(0,0)
             
-         
-    
+            if all(line_measure[2:5]):
+            #to check if it is perfectly aligned
+                return moved,x,y,th
+            
+            
+        else: 
+            
+            self.driveMotors(-0.04,0.04)
+            x,y,th=self.movement_model(-0.04,0.04)
+
+        return moved,x,y,th
+        
   
     def move_forward(self,x,y,th,line_measure):
         #moving forward units units
         global moved,logs  
-        
-        self.estx=x
-        self.esty=y
-        est_th=th
+        print(line_measure)#SHOULD BE [0, 0, 1, 1, 1, 0, 0]
         pid_controller=self.pid_controller
         
         self.estx=x
@@ -333,9 +359,8 @@ class MyRob(CRobLinkAngs):
             self.driveMotors(0.04,0.04) 
             x,y,th=self.movement_model(0.04,0.04)
             
-         
-     
             
+                       
         # print(abs(x-self.initx),abs(y-self.inity))
         # print(x,y,th)
         #check final positions to see if in finalPos 
@@ -353,53 +378,7 @@ class MyRob(CRobLinkAngs):
         
         
         
-        
-    def rotate_P(self,target_angle,th,moved,line_measure):
-        #rotating positively(right to left )
-        angle_threshold=0.8
-
-        # print(compass)
-        
-        if abs(th - target_angle)<= angle_threshold:
-            
-            moved=True
-            x,y,th=self.movement_model(0,0)
-            self.driveMotors(0,0)
-            
-            if all(line_measure[2:5]):
-            #to check if it is perfectly aligned
-                return moved,x,y,th
-            
-            
-        else: 
-            
-            self.driveMotors(-0.01,0.01)
-            x,y,th=self.movement_model(-0.01,0.01)
-
-        return moved,x,y,th
-        
-        
-    def rotate_N(self,target_angle,th,moved,line_measure):
-          #rotating positively(right to left )
-        angle_threshold=1
-        # print(compass)
-        if abs(th - target_angle)<= angle_threshold:
-            moved=True
-            x,y,th=self.movement_model(0,0)
-            self.driveMotors(0,0)
-            
-            if all(line_measure[2:5]):
-            #to check if it is perfectly aligned
-                return moved,x,y,th
-            
-            
-        else: 
-            
-            self.driveMotors(0.01,-0.01)
-            x,y,th=self.movement_model(0.01,-0.01)
-
-        return moved,x,y,th
-   
+      
 
     def movement_model(self,motorL,motorR):
         # to know how much the robot moved and where it is and its orientation.
@@ -407,7 +386,7 @@ class MyRob(CRobLinkAngs):
 
 
 
-        lin= (motorL+motorR)/2
+        lin= (motorL+motorR)/2*noise[0]
         rot= (motorR-motorL)/1 
         t_last=self.estdir
         #new position values
@@ -427,13 +406,12 @@ class MyRob(CRobLinkAngs):
         self.estdir=theta
         #turn theta to degrees
         th=degrees(theta)
-        
+        self.th=th
         
         return x,y,th
             
     def update_map(self, x, y, theta, logs, line_measure):
         global map
-        print("updating map")
         all_actions = []
 
     
@@ -488,13 +466,19 @@ class MyRob(CRobLinkAngs):
             last_log = keys[-1]
             # obtain the tdodo and done actions of the last log
             all_actions = logs[last_log]["todo_actions"] + logs[last_log]["done_actions"]
-
+            log_ground_sensor=logs[last_log]["beacons"]
+                
+            
             logx=last_log[1]
             logy=last_log[0]
-            print(logx,logy)
-            print(zerox,zeroy)
             beaconx=zerox+logx
             beacony=zeroy+logy
+            
+            #to see if its in a beacon
+            if log_ground_sensor!= [-1]:
+                map[beaconx][beacony]=log_ground_sensor
+            
+            
             # define the directions
             for i in all_actions:
                 if i == 1:
@@ -511,11 +495,22 @@ class MyRob(CRobLinkAngs):
                 #if 4(forward), add - to the right of zerox, zeroy
                     map[beaconx][beacony+1] = '-'
                 
-            for i in range(21):
-                print(map[i])    
+             
+            # print(logx,logy)
+            # print(zerox,zeroy)
+            
+            # print("updating map")   
+            # for i in range(21):
+            #     print(map[i])    
                 
+        # Save the map to a file
+        
+        with open("mapping.out", "w") as file:
+            for row in map:
+                file.write(' '.join(str(cell) for cell in row) + '\n')
 
-                
+        
+        
 
         return
 
@@ -529,7 +524,7 @@ def logging(self, logs, x, y,th, line_measure, action=None):
     if action==None and x==0 and y==0:
     #at 0,0 in the beginning theres no action. its only to log the only options
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": []}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
             # print("Adding new position to logs")
         # Calculate the possible actions based on the line sensor and compass
 
@@ -552,18 +547,33 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         
         x=round(x)
         y=round(y)
-        print(x,y)
+        
         self.previousaction=action
         # Create a new dict for the current position if it doesn't exist
         if (x, y) not in logs:
-            logs[(x, y)] = {"done_actions": [], "todo_actions": []}
+            logs[(x, y)] = {"done_actions": [], "todo_actions": [],"beacons":[]}
             # print("Adding new position to logs")
-        # Calculate the possible actions based on the line sensor and compass
+            # Calculate the possible actions based on the line sensor and compass
 
-        possible_actions = calculate_possible_actions(self,line_measure, th)
+            possible_actions = calculate_possible_actions(self,line_measure, th)
 
-        todo_actions = [a for a in possible_actions if a not in logs[(x, y)]["done_actions"]]
-        logs[(x, y)]["todo_actions"] = todo_actions
+            todo_actions = [a for a in possible_actions if a not in logs[(x, y)]["done_actions"]]
+            logs[(x, y)]["todo_actions"] = todo_actions
+    
+            ground_sensor=self.measures.ground
+            logs[(x,y)]["beacons"].append(ground_sensor)
+            
+            
+        else:
+            #TODO: this is only for 0,0
+            #if already in the logs, we need to add the new possible actions to the todo actions
+            old_log=logs[(x, y)]
+            #calculating possible actiosn 
+            possible_actions = calculate_possible_actions(self,line_measure, th)
+            
+            todo_actions= [a for a in possible_actions if a not in logs[(x,y)]["done_actions"]]
+            
+     
         # Update the todo_actions list for the current position
 
         #action is from pervious position, so we add it to the done_actions from -2 logs
@@ -572,7 +582,6 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         (x_old,y_old)= keys[-2]
         #keys -1 may not exist, so we need to check if it exists
 
-        self.previousaction=action        
         if (x_old,y_old) in logs:
             
             # Update the done_actions list of previous position, and remove the action from the todo_actions list
@@ -582,8 +591,16 @@ def logging(self, logs, x, y,th, line_measure, action=None):
             # print(logs[(x_old,y_old)]["done_actions"])
             # print(logs  [(x_old,y_old)]["todo_actions"])
             # print("previous action", self.previousaction)
+            try:
+                logs[(x_old,y_old)]["todo_actions"].remove(self.previousaction)
+                
+            except:
+                print("----error----")    
+                print(x_old,y_old)
+                print(logs[(x_old,y_old)]["todo_actions"])
+                print(self.previousaction)
             
-            logs[(x_old,y_old)]["todo_actions"].remove(self.previousaction)
+                print("----error----")    
             logs[(x_old,y_old)]["done_actions"].append(self.previousaction)
     
         print(logs)
@@ -591,6 +608,21 @@ def logging(self, logs, x, y,th, line_measure, action=None):
     # Return the updated logs
     return logs
 
+# def calculate_possible_actions(self,line_measure,th):
+#     global moved
+#     possible_actions=[]; possible_actions_in0=[]
+#     #calculate difference from all linesensors
+#     diff = np.diff(self.linesensors, axis=0)
+    
+#     differences=[]
+#     for i, row in enumerate(diff):
+#         if isinstance(row, np.ndarray):
+#             indices = [j for j, val in enumerate(row) if val != 0]
+#             differences.append(indices)
+#     nemptydiff = [x for x in differences if x != []]   
+
+#     print(self.linesensors)
+#     print(nemptydiff)
 
 def calculate_possible_actions(self,line_measure,th):
     #from the linesensor, we calculate all possible actions when the robot is on a crossroad
@@ -600,28 +632,35 @@ def calculate_possible_actions(self,line_measure,th):
     # Calculate the difference between the first array and all the other arrays
     diff = np.diff(self.linesensors, axis=0)
     
-    # checking all values that arent 0
+    # checking all values that arent 0 in the last 10 differences values
+   
     differences = []
     for i, row in enumerate(diff):
         if isinstance(row, np.ndarray):
             indices = [j for j, val in enumerate(row) if val != 0]
             differences.append(indices)
     nemptydiff = [x for x in differences if x != []]
-
+    
     
     #checks if it can go left or right
     for row in nemptydiff:
-        if 0 in row:
+        if 0 or 1 in row:
             possible_actions.append(1)
-        if 6 in row:
+        if 5 or 6 in row:
             possible_actions.append(2)
+            
     
-    if  all(line_measure[2:5]):
+    
+    # if sum(line_measure) >=3:
+    
+    if  all(line_measure[2:4]):
         possible_actions.append(4)
     else:
+        # print("linemeasure",line_measure)
+        # print("angle",th)
         possible_actions.append(3)  
         #nothing at the end, turn back
-    
+    print("possibleactions",possible_actions)
     #no repeating values
     possible_actions = list(set(possible_actions))
     
@@ -705,9 +744,6 @@ def convert_0degree_action_to_action(self, action, th):
     
     
     
-    
-    
-    
 
 def remove_noise(self,line_measure):
     #de perceção e controlo
@@ -749,6 +785,7 @@ class Map():
                            None
                
            i=i+1
+
 
 
 rob_name = "pClient1"
