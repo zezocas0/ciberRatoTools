@@ -150,6 +150,7 @@ class MyRob(CRobLinkAngs):
     def determine_action(self, line_measure, x, y):
         # From linesensor readings determine action
         global moved, logs,map
+        backwards=False
         compass = self.measures.compass
         if compass < 0:
             compass = 360 + compass
@@ -161,16 +162,24 @@ class MyRob(CRobLinkAngs):
         (x,y)=keys[-1]
         possible_movements=logs[(x,y)]['todo_actions']
 
+
         if possible_movements != []:
             # prioritize going forward
             if 4 in possible_movements:
                 possible_action = 4
+                possible_movements.remove(4)
             # then left or right
-            elif 1 in possible_movements and 2 in possible_movements:
-                possible_action = random.choice([1,2])
-            # else go backwards
-            else:
+            elif 1 in possible_movements or 2 in possible_movements:
+                possible_actions = [1, 2]
+                possible_actions = [action for action in possible_actions if action in possible_movements]
+                if possible_actions:
+                    possible_action = random.choice(possible_actions)
+                    possible_movements.remove(possible_action)
+            # if there's no 1, 2, or 4, now I can go backwards
+            elif 3 in possible_movements:
                 possible_action = 3
+                possible_movements.remove(3)
+
         else:
             all_movements=logs[(x,y)]['done_actions']
             possible_action=random.choice(all_movements)
@@ -609,8 +618,20 @@ def logging(self, logs, x, y,th, line_measure, action=None):
             # print(logs[(x_old,y_old)]["done_actions"])
             # print(logs  [(x_old,y_old)]["todo_actions"])
             # print("previous action", self.previousaction)
+            try:
+                logs[(x_old,y_old)]["todo_actions"].remove(self.previousaction)
+                
+            except:
+                print("----error----")
+                print("error trying to remove previous action(624)")    
+                print(x_old,y_old)
+                print(logs[(x_old,y_old)]["todo_actions"])
+                print(self.previousaction)
             
-            logs[(x_old,y_old)]["todo_actions"].remove(self.previousaction)
+                print("----error----") 
+            
+            
+            
             logs[(x_old,y_old)]["done_actions"].append(self.previousaction)
     
         print(logs)
