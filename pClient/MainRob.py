@@ -131,14 +131,14 @@ class MyRob(CRobLinkAngs):
         self.x,self.y,self.theta,line_measure=self.move(action,line_measure)
 
         logs = logging(self, logs, self.x, self.y,self.theta, line_measure, action)
-        print("last 2 logs",  list(logs.keys())[-1:])
+        # print("last 2 logs",  list(logs.keys())[-1:])
         moved=False
         
         #UPDATE MAP
         
          
         #TODO: make map function
-        map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
+        # map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
         
         self.readSensors()
         line_measure=remove_noise(self, self.measures.lineSensor)
@@ -257,7 +257,7 @@ class MyRob(CRobLinkAngs):
                     
                 if not moved:
                     moved,x,y,th=self.rotate_N(target_angle,th,moved,line_measure)
-                    print(f"rotaing right to {target_angle}, current angle {th},range{target_angle-th}")
+                    # print(f"rotaing right to {target_angle}, current angle {th},range{target_angle-th}")
                 if moved:
                     print("in position,stopped")
                     # print(compass)
@@ -582,9 +582,11 @@ def logging(self, logs, x, y,th, line_measure, action=None):
         #keys -1 may not exist, so we need to check if it exists
         # Update the done_actions list of previous position, and remove the action from the todo_actions list
         ground_sensor=self.measures.ground
-        logs[(x,y)]["beacons"].append(ground_sensor)
-            
- 
+        #unique values of ground sensor, because it gets 100 zeros sometimes, because i dont start right away
+        
+        logs[(x,y)]["beacons"].append(0)
+        #remove all "beacons" exept one    
+        logs[(x,y)]["beacons"]=list(set(logs[(x,y)]["beacons"]))
     
     
     if moved:
@@ -650,32 +652,67 @@ def logging(self, logs, x, y,th, line_measure, action=None):
 def calculate_possible_actions(self,line_measure,th):
     #from the linesensor, we calculate all possible actions when the robot is on a crossroad
     global moved
-    possible_actions=[]; possible_actions_in0=[]
+    possible_actions=[]; possible_actions_in0=[];sensor_data=[] 
+    new_sensor_data = None
     
-    # Calculate the difference between the first array and all the other arrays
-    diff = np.diff(self.linesensors, axis=0)
     
-    # checking all values that arent 0
-    differences = []
-    for i, row in enumerate(diff):
-        if isinstance(row, np.ndarray):
-            indices = [j for j, val in enumerate(row) if val != 0]
-            differences.append(indices)
-    nemptydiff = [x for x in differences if x != []]
+    sensor_data=self.linesensors
+    #going from last backwards, see the last value where the line is all 0
+    # print("sensor_data",sensor_data)
+        
+    for i in range(len(sensor_data)-1, -1, -1):
+        if sum(sensor_data[i][0:2]) >=2 or sum(sensor_data[i][5:7]) >=2:
+            new_sensor_data = sensor_data[i]
+            break
+    # if new_sensor_data is still None, get the last vector with data
+    if new_sensor_data is None:
+        for i in range(len(sensor_data)-1, -1, -1):
+            if sum(sensor_data[i]) > 0:
+                new_sensor_data = sensor_data[i]
+                
 
+    print("new sensor data", new_sensor_data)
     
-    #checks if it can go left or right
-    for row in nemptydiff:
-        if 0 in row:
-            possible_actions.append(1)
-        if 6 in row:
-            possible_actions.append(2)
-    
-    if  all(line_measure[2:5]):
+    #check last self.linesensors, if all 1 in [2:5],then it can go forward
+    if sum(sensor_data[-1][2:5]) == 3:
         possible_actions.append(4)
-    else:
-        possible_actions.append(3)  
-        #nothing at the end, turn back
+    #check the new_sensor_data, if all 1 in [0:2],then it can go left
+    if sum(new_sensor_data[0:2]) == 2:
+        possible_actions.append(1)
+    #check new_sensor_data, if all 1 in [5:7],then it can go right
+    if sum(new_sensor_data[5:7]) == 2:
+        possible_actions.append(2)
+        
+    #if possible_actions is empty, then it can only go back
+    if new_sensor_data is None or possible_actions == []:
+        possible_actions.append(3)
+    
+        
+    # # Calculate the difference between the first array and all the other arrays
+    # diff = np.diff(self.linesensors, axis=0)
+    
+    # # checking all values that arent 0
+    # differences = []
+    # for i, row in enumerate(diff):
+    #     if isinstance(row, np.ndarray):
+    #         indices = [j for j, val in enumerate(row) if val != 0]
+    #         differences.append(indices)
+    # #nemptydiff must only have last 10 differences
+    # nemptydiff = [x for x in differences if x != []]
+    # nemptydiff = nemptydiff[-10:]
+    # print("nemptydiff",nemptydiff)
+    # #checks if it can go left or right
+    # for row in nemptydiff:
+    #     if 0 in row:
+    #         possible_actions.append(1)
+    #     if 6 in row:
+    #         possible_actions.append(2)
+    
+    # if  all(line_measure[2:5]):
+    #     possible_actions.append(4)
+    # else:
+    #     possible_actions.append(3)  
+    #     #nothing at the end, turn back
     
     #no repeating values
     possible_actions = list(set(possible_actions))
@@ -733,11 +770,10 @@ def convert_0degree_action_to_action(self, action, th):
     # }
     orientations = {
         0:   {4:4 , 1:1 , 2: 2 , 3:3 },
-        90:  {4:1 , 1:4 , 2:3 , 3:2  },
+        90:  {4:2 , 1:4 , 2:3 , 3:1  },
         180: {4:3 , 1:2 , 2:1 , 3:4  },
         270: {4:2 , 4:1 , 3:2 , 1:3  }
     }
-
     # Checking which orientation is closest now
     possible_ori = [abs(th - 0), abs(th - 90), abs(th - 180), abs(th - 270), abs(th - 360)]
     ori_now = [0, 90, 180, 270, 0][possible_ori.index(min(possible_ori))]
