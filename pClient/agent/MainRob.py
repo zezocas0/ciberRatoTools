@@ -1,9 +1,7 @@
 import sys
 from croblink import *
-import math
 import xml.etree.ElementTree as ET
 from  math import cos,sin,radians, pi,degrees
-import numpy as np
 import random
 
 from lib.pid import PIDController
@@ -22,11 +20,11 @@ logs={}
 map=[]
 
 class MyRob(CRobLinkAngs):
-    def __init__(self, rob_name, rob_id, angles, host):
-        CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
+    def __init__(self, rob_name, rob_id, angles, host,file_name):
+        CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host,)
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
     # to know if there is a wall on top of cell(i,j) (i in 0..5), check if the value of labMap[i*2+1][j*2] is space or not
-
+        self.file_name=file_name
         #estimated x,y,theta caltulated by odom
         self.estx=0.0
         self.esty=0.0
@@ -43,9 +41,9 @@ class MyRob(CRobLinkAngs):
         self.previousaction=[]
         #1=left,2=right,3=back,4=front
         
-        kp = 0.05138938976206109
-        ki = 0.0022398605506287416
-        kd = 0.0008512325205835791
+        kp = 0.05
+        ki = 0.002
+        kd = 0.000864734125
         self.pid_controller=PIDController(kp,ki,kd)
 
     def setMap(self, labMap):
@@ -138,7 +136,7 @@ class MyRob(CRobLinkAngs):
         
          
         #TODO: make map function
-        # map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
+        map=self.update_map(self.x,self.y,self.theta,logs,line_measure)
         
         self.readSensors()
         line_measure=remove_noise(self, self.measures.lineSensor)
@@ -419,11 +417,11 @@ class MyRob(CRobLinkAngs):
 
     def movement_model(self,motorL,motorR):
         # to know how much the robot moved and where it is and its orientation.
-        noise=(random.gauss(1,0.15**2),random.gauss(1,0.15**2))
+        noise=random.gauss(1,0.15**2)
 
 
 
-        lin= (motorL+motorR)/2
+        lin= (motorL+motorR)/2*noise
         rot= (motorR-motorL)/1 
         t_last=self.estdir
         #new position values
@@ -548,8 +546,10 @@ class MyRob(CRobLinkAngs):
             #     print(map[i])    
                 
         # Save the map to a file
-        
-        with open("mapping.out", "w") as file:
+        name=self.file_name
+        #add .out to the name
+        name=name+"_map.out"
+        with open(name, "w") as file:
             for row in map:
                 file.write(' '.join(str(cell) for cell in row) + '\n')
 
@@ -671,7 +671,7 @@ def calculate_possible_actions(self,line_measure,th):
                 new_sensor_data = sensor_data[i]
                 
 
-    print("new sensor data", new_sensor_data)
+    # print("new sensor data", new_sensor_data)
     
     #check last self.linesensors, if all 1 in [2:5],then it can go forward
     if sum(sensor_data[-1][2:5]) == 3:
@@ -688,32 +688,6 @@ def calculate_possible_actions(self,line_measure,th):
         possible_actions.append(3)
     
         
-    # # Calculate the difference between the first array and all the other arrays
-    # diff = np.diff(self.linesensors, axis=0)
-    
-    # # checking all values that arent 0
-    # differences = []
-    # for i, row in enumerate(diff):
-    #     if isinstance(row, np.ndarray):
-    #         indices = [j for j, val in enumerate(row) if val != 0]
-    #         differences.append(indices)
-    # #nemptydiff must only have last 10 differences
-    # nemptydiff = [x for x in differences if x != []]
-    # nemptydiff = nemptydiff[-10:]
-    # print("nemptydiff",nemptydiff)
-    # #checks if it can go left or right
-    # for row in nemptydiff:
-    #     if 0 in row:
-    #         possible_actions.append(1)
-    #     if 6 in row:
-    #         possible_actions.append(2)
-    
-    # if  all(line_measure[2:5]):
-    #     possible_actions.append(4)
-    # else:
-    #     possible_actions.append(3)  
-    #     #nothing at the end, turn back
-    
     #no repeating values
     possible_actions = list(set(possible_actions))
     
@@ -847,6 +821,7 @@ host = "localhost"
 pos = 1
 mapc = None
 read_lines=[]
+file_name="output"
 for i in range(1, len(sys.argv),2):
     if (sys.argv[i] == "--host" or sys.argv[i] == "-h") and i != len(sys.argv) - 1:
         host = sys.argv[i + 1]
@@ -856,12 +831,15 @@ for i in range(1, len(sys.argv),2):
         rob_name = sys.argv[i + 1]
     elif (sys.argv[i] == "--map" or sys.argv[i] == "-m") and i != len(sys.argv) - 1:
         mapc = Map(sys.argv[i + 1])
+    #-f for filename
+    elif( sys.argv[i] == "--file" or sys.argv[i] == "-f") and i != len(sys.argv) - 1:
+        file_name = sys.argv[i + 1]
     else:
         print("Unkown argument", sys.argv[i])
         quit()
 
 if __name__ == '__main__':
-    rob=MyRob(rob_name,pos,[0.0,60.0,-60.0,180.0],host)
+    rob=MyRob(rob_name,pos,[0.0,60.0,-60.0,180.0],host,file_name)
     if mapc != None:
         rob.setMap(mapc.labMap)
         rob.printMap()
